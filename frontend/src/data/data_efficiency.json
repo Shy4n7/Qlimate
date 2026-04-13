@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-04-11T10:55:26.171738+00:00",
+  "total_dataset_size": 9940,
+  "classical": {
+    "samples_used": 6958,
+    "data_utilization_pct": 70.0,
+    "features_used": 9,
+    "pca_applied": false,
+    "normalization": "StandardScaler (zero mean, unit variance)"
+  },
+  "quantum": {
+    "samples_used": 400,
+    "data_utilization_pct": 4.0,
+    "features_before_pca": 9,
+    "features_after_pca": 4,
+    "pca_variance_retained": 0.9413,
+    "pca_variance_per_component": [
+      0.5131,
+      0.2108,
+      0.1688,
+      0.0486
+    ],
+    "normalization": "MinMaxScaler [0, pi] for angle encoding",
+    "encoding": "amplitude/angle encoding via ZZFeatureMap"
+  },
+  "compression_ratio": 2.25,
+  "sample_reduction_ratio": 17.4
+}

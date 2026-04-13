@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-04-11T10:55:26.170791+00:00",
+  "models": {
+    "random_forest": {
+      "training_time_s": null,
+      "training_time_note": "not captured during original run",
+      "time_per_sample_ms": null,
+      "memory_usage_mb": 13.703,
+      "n_train": 6958,
+      "complexity_class": "O(n * trees * log(n))",
+      "circuit_executions": null,
+      "type": "classical"
+    },
+    "svm": {
+      "training_time_s": null,
+      "training_time_note": "not captured during original run",
+      "time_per_sample_ms": null,
+      "memory_usage_mb": 0.87,
+      "n_train": 6958,
+      "complexity_class": "O(n^2 * features)",
+      "circuit_executions": null,
+      "type": "classical"
+    },
+    "xgboost": {
+      "training_time_s": null,
+      "training_time_note": "not captured during original run",
+      "time_per_sample_ms": null,
+      "memory_usage_mb": 2.773,
+      "n_train": 6958,
+      "complexity_class": "O(n * trees * depth)",
+      "circuit_executions": null,
+      "type": "classical"
+    },
+    "neural_network": {
+      "training_time_s": null,
+      "training_time_note": "not captured during original run",
+      "time_per_sample_ms": null,
+      "memory_usage_mb": 0.018,
+      "n_train": 6958,
+      "complexity_class": "O(epochs * n * hidden_dims)",
+      "circuit_executions": null,
+      "type": "classical"
+    },
+    "QSVC": {
+      "training_time_s": 274.61,
+      "time_per_sample_ms": 686.53,
+      "memory_usage_mb": 0.053,
+      "n_train": 400,
+      "complexity_class": "O(n^2) kernel circuits",
+      "circuit_executions": 160000,
+      "circuit_executions_note": "400^2 = 160000 fidelity evaluations (symmetric, ~80000 unique pairs)",
+      "kernel_matrix_size": "400x400",
+      "circuit_depth": 11,
+      "n_qubits": 4,
+      "type": "quantum"
+    },
+    "VQC": {
+      "training_time_s": 197.99,
+      "time_per_sample_ms": 494.97,
+      "memory_usage_mb": null,
+      "memory_note": "VQC model object could not be serialized (0-byte pkl)",
+      "n_train": 400,
+      "complexity_class": "O(maxiter * n * n_params)",
+      "circuit_executions": 0,
+      "circuit_executions_note": "COBYLA fired 0 optimizer iterations due to qiskit-machine-learning 0.9.0 callback incompatibility",
+      "n_params": 24,
+      "circuit_depth": 21,
+      "n_qubits": 4,
+      "type": "quantum"
+    }
+  }
+}

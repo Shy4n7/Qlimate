@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-04-11T10:55:26.169240+00:00",
+  "models": {
+    "random_forest": {
+      "type": "classical",
+      "accuracy": 0.5264922870556673,
+      "f1_macro": 0.44182509920619006,
+      "precision_macro": 0.42881399955266986,
+      "recall_macro": 0.46779662450312004,
+      "n_test": 1491,
+      "prediction_time_s": 0.0406
+    },
+    "svm": {
+      "type": "classical",
+      "accuracy": 0.4151576123407109,
+      "f1_macro": 0.4050203718392356,
+      "precision_macro": 0.4035895122540188,
+      "recall_macro": 0.4821835979377793,
+      "n_test": 1491,
+      "prediction_time_s": 0.4539
+    },
+    "xgboost": {
+      "type": "classical",
+      "accuracy": 0.6317907444668008,
+      "f1_macro": 0.43191082494523175,
+      "precision_macro": 0.5933086397335102,
+      "recall_macro": 0.4021223168483159,
+      "n_test": 1491,
+      "prediction_time_s": 0.076
+    },
+    "neural_network": {
+      "type": "classical",
+      "accuracy": 0.5855130784708249,
+      "f1_macro": 0.2677892511773515,
+      "precision_macro": 0.6793105983330117,
+      "recall_macro": 0.2806138689283523,
+      "n_test": 1491,
+      "prediction_time_s": 0.0429
+    },
+    "QSVC": {
+      "type": "quantum",
+      "accuracy": 0.2528504359490275,
+      "f1_macro": 0.22947219775185781,
+      "precision_macro": 0.24882065356742727,
+      "recall_macro": 0.26925797778678284,
+      "n_test": 1491,
+      "prediction_time_s": 2078.5975
+    },
+    "VQC": {
+      "type": "quantum",
+      "accuracy": 0.3199195171026157,
+      "f1_macro": 0.1401568853129101,
+      "precision_macro": 0.13506221586278097,
+      "recall_macro": 0.1979583258271783,
+      "n_test": 1491,
+      "prediction_time_s": 4.8407
+    }
+  }
+}

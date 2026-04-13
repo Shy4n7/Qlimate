@@ -1,0 +1,52 @@
+# Raw satellite data (large binary files, re-downloadable via src/data/download.py)
+data/raw/
+data/.cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Trained model weights (large, not version-controlled)
+results/models/random_forest.pkl
+results/models/svm.pkl
+results/models/neural_network.pt
+results/models/neural_network_meta.pkl
+
+# Keep: xgboost, qsvc, scalers, pca (small + needed by backend)
+# results/models/xgboost.pkl         ~2.8MB  ← tracked
+# results/models/qsvc.pkl            ~55KB   ← tracked
+# results/models/pca_model.pkl       ~1.2KB  ← tracked
+# results/models/classical_scaler.pkl        ← tracked
+# results/models/quantum_scaler.pkl          ← tracked
+# results/models/qsvc_meta.pkl               ← tracked
+# results/models/vqc_meta.pkl                ← tracked
+# results/models/vqc.pkl                     ← tracked (stub)
+
+# Secrets / env
+.env
+*.env
+config/earthdata_password.txt
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

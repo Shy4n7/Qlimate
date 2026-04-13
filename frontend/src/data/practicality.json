@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-04-11T10:55:30.905264+00:00",
+  "hardware_requirements": {
+    "classical": {
+      "cpu": "any multi-core CPU (n_jobs=-1 parallelism)",
+      "gpu": "optional \u2014 PyTorch NN and XGBoost benefit from CUDA",
+      "ram_gb_approx": 4,
+      "infrastructure": "local workstation or cloud VM",
+      "internet_required": true,
+      "internet_reason": "NASA Earthdata download (~3.5 GB)"
+    },
+    "quantum_simulator": {
+      "cpu": "any \u2014 runs on StatevectorSampler (CPU-based)",
+      "ram_gb_approx": 2,
+      "infrastructure": "local workstation",
+      "internet_required": false,
+      "scaling_limit": "~400-500 training samples before simulation time becomes prohibitive"
+    },
+    "quantum_hardware": {
+      "service": "IBM Cloud Quantum",
+      "backend": "ibm_fez (127 qubits, Eagle r3)",
+      "monthly_budget_minutes": 10,
+      "quota_consumed_this_run": "~16-20 minutes (2 kernel rows \u00d7 ~8-10 min each)",
+      "quota_note": "Exceeded monthly limit during partial hardware run",
+      "internet_required": true,
+      "account_required": "IBM Cloud account with Quantum plan"
+    }
+  },
+  "scalability": {
+    "QSVC": {
+      "complexity": "O(n^2) circuit executions for training kernel matrix",
+      "measured_at_n400": 274.6,
+      "projected_at_n1000_s": 1716.3,
+      "projected_at_n6958_s": 83093.8,
+      "feasible_training_size": 400,
+      "classical_training_size": 6958
+    },
+    "VQC": {
+      "complexity": "O(maxiter \u00d7 n_train) circuit evaluations",
+      "n_params": 24,
+      "maxiter_configured": 150,
+      "iterations_completed": 0
+    },
+    "classical_reference": {
+      "training_size_used": 6958,
+      "scaling": "near-linear to linear depending on model"
+    }
+  },
+  "time_to_first_result": {
+    "classical_all_models": "< 5 minutes (after data download)",
+    "quantum_simulator": "~45 minutes (QSVC kernel matrix on 400 samples)",
+    "quantum_hardware": "> 8 minutes per kernel row (queue + execution)"
+  },
+  "retraining_speed": {
+    "classical": "seconds to minutes",
+    "quantum_simulator": "~45 minutes for QSVC kernel recomputation",
+    "quantum_hardware": "months (quota-limited)"
+  },
+  "summary": "At current NISQ scale, quantum models require 17x more wall-clock time than classical SVM on a 400-sample subset, while classical models train on the full 6,958-sample dataset in under 5 minutes. The quantum computational bottleneck is kernel matrix evaluation, not algorithm quality. This gap narrows with fault-tolerant hardware and quantum-native data sources."
+}

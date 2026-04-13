@@ -1,0 +1,104 @@
+earthdata:
+  username: "shyan"
+  # password: set EARTHDATA_PASSWORD env var - never hardcode
+  base_url: "https://goldsmr4.gesdisc.eosdis.nasa.gov/data/MERRA2_MONTHLY"
+
+merra2:
+  collections:
+    slv:
+      short_name: "M2TMNXSLV"
+      version: "5.12.4"
+      variables: ["T2M", "QV2M", "U10M", "V10M", "PS", "SLP"]
+    flx:
+      short_name: "M2TMNXFLX"
+      version: "5.12.4"
+      variables: ["PRECTOT", "EVAP"]
+    rad:
+      short_name: "M2TMNXRAD"
+      version: "5.12.4"
+      variables: ["SWGDN", "LWGNT", "CLDTOT"]
+  # stream_id is based on year
+  # 1980-1991: 100, 1992-2000: 200, 2001-2010: 300, 2011+: 400
+  time_range:
+    start_year: 1995
+    end_year: 2024
+
+geography:
+  india_bounds:
+    lat_min: 6.0
+    lat_max: 37.0
+    lon_min: 68.0
+    lon_max: 98.0
+  shapefile_url: "https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States"
+  shapefile_fallback_url: "https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States"
+
+labeling:
+  percentiles:
+    drought_low: 15
+    wet_high: 85
+    heat_high: 90
+    cold_low: 10
+  # Classes: 0=Normal, 1=Drought, 2=Wet_Flood, 3=Heat_Extreme, 4=Cold_Extreme
+  class_names: ["Normal", "Drought", "Wet_Flood", "Heat_Extreme", "Cold_Extreme"]
+  # Priority (higher = takes precedence when multiple conditions met)
+  # Heat > Cold > Drought > Wet > Normal
+  priority: ["Heat_Extreme", "Cold_Extreme", "Drought", "Wet_Flood", "Normal"]
+
+data_split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  random_state: 42
+
+classical_ml:
+  random_forest:
+    n_estimators: [100, 200, 500]
+    max_depth: [10, 20, null]
+    min_samples_split: [2, 5]
+    cv_folds: 3
+  svm:
+    C: [0.1, 1.0, 10.0]
+    kernel: ["rbf"]
+    gamma: ["scale"]
+    cv_folds: 3
+  xgboost:
+    n_estimators: [100, 200]
+    max_depth: [3, 6]
+    learning_rate: [0.05, 0.1]
+    tree_method: "hist"  # use gpu_hist if CUDA available
+    cv_folds: 3
+  neural_net:
+    hidden_dims: [64, 32]
+    dropout: [0.3, 0.2]
+    epochs: 150
+    learning_rate: 0.001
+    batch_size: 64
+    early_stopping_patience: 15
+
+quantum_ml:
+  n_qubits: 4
+  pca_components: 4
+  training_subset_size: 400
+  feature_scale_range: [0.0, 3.14159]  # normalize to [0, pi]
+  qsvc:
+    feature_map_reps: 1
+    entanglement: "linear"
+  vqc:
+    feature_map_reps: 1
+    ansatz_reps: 2
+    entanglement: "linear"
+    optimizer: "SPSA"
+    maxiter: 150
+    initial_point_scale: 0.5  # pi * scale for non-random init
+  ibm_quantum:
+    channel: "ibm_cloud"
+    instance: "crn:v1:bluemix:public:quantum-computing:us-east:a/fdaef8687dd049eb9ccb00fc2623e53f:2fea488d-cd89-4515-8a6c-b220a642179e::"
+    max_test_samples: 20  # limit for real hardware (10 min/month budget)
+
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  shapefiles: "data/shapefiles"
+  figures: "results/figures"
+  models: "results/models"
+  cache: "data/.cache"
