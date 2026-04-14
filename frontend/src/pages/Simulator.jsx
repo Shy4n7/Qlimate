@@ -92,22 +92,41 @@ export default function Simulator() {
             )}
 
             {result && (
-              <div className="card bg-slate-800/40 border border-slate-800">
-                <div className="text-slate-400 text-xs font-semibold mb-2">
-                  Historical baseline
-                </div>
-                <p className="text-slate-300 text-sm">
-                  Most common condition for{' '}
-                  <span className="text-white font-medium">{result.state}</span> in{' '}
-                  this month across 1995–2024:{' '}
-                  <span className="text-amber-300 font-semibold">
-                    {result.historical_label?.replace('_', ' ')}
-                  </span>
-                </p>
-                <p className="text-slate-600 text-xs mt-2">
-                  Both models were trained on this historical data and are predicting
-                  the typical pattern for this state-month combination.
-                </p>
+              <div className={`card border ${result.is_projection ? 'bg-amber-950/20 border-amber-800' : 'bg-slate-800/40 border-slate-800'}`}>
+                {result.is_projection ? (
+                  <>
+                    <div className="text-amber-400 text-xs font-semibold mb-2 uppercase tracking-widest">
+                      Projection — {result.year}
+                    </div>
+                    <p className="text-slate-300 text-sm">
+                      No satellite data exists for <span className="text-white font-medium">{result.year}</span>.
+                      Both models predicted using the 30-year historical average for{' '}
+                      <span className="text-white font-medium">{result.state}</span> in this month.
+                    </p>
+                    <p className="text-amber-700 text-xs mt-2">
+                      This is a baseline projection — not a climate forecast. Real future conditions
+                      may differ due to climate change trends not captured in the training data.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-slate-400 text-xs font-semibold mb-2">
+                      Historical baseline
+                    </div>
+                    <p className="text-slate-300 text-sm">
+                      Most common condition for{' '}
+                      <span className="text-white font-medium">{result.state}</span> in{' '}
+                      this month across 1995–2024:{' '}
+                      <span className="text-amber-300 font-semibold">
+                        {result.historical_label?.replace('_', ' ')}
+                      </span>
+                    </p>
+                    <p className="text-slate-600 text-xs mt-2">
+                      Both models were trained on this historical data and are predicting
+                      the typical pattern for this state-month combination.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>

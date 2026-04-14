@@ -51,6 +51,7 @@ function mockPredict(state, month, year) {
       ? 'Both models agree on this state-month pattern (mock data — start the backend for real predictions).'
       : 'Models disagree here (mock data — start the backend for real predictions).',
     is_mock: true,
+    is_projection: (year || 0) > 2024,
   }
 }
 

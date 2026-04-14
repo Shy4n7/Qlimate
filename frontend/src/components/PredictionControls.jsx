@@ -1,7 +1,8 @@
 import React from 'react'
 import { MONTHS } from '../api/predict'
 
-const YEARS = Array.from({ length: 2024 - 1995 + 1 }, (_, i) => 1995 + i)
+const HISTORICAL_YEARS = Array.from({ length: 2024 - 1995 + 1 }, (_, i) => 1995 + i)
+const FUTURE_YEARS     = Array.from({ length: 2030 - 2025 + 1 }, (_, i) => 2025 + i)
 
 export default function PredictionControls({
   selectedState,
@@ -13,6 +14,7 @@ export default function PredictionControls({
   isLoading,
 }) {
   const ready = selectedState && selectedMonth && selectedYear && !isLoading
+  const isFuture = selectedYear && selectedYear > 2024
 
   return (
     <div className="space-y-4">
@@ -43,16 +45,32 @@ export default function PredictionControls({
         </div>
 
         <div>
-          <label className="block text-slate-400 text-xs mb-1">Year</label>
+          <label className="block text-slate-400 text-xs mb-1">
+            Year
+            {isFuture && (
+              <span className="ml-2 text-amber-400 font-semibold">Projection</span>
+            )}
+          </label>
           <select
             value={selectedYear || ''}
             onChange={(e) => onYearChange(Number(e.target.value))}
-            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:border-violet-600 focus:outline-none"
+            className={`px-3 py-2 rounded-lg border bg-slate-800 text-sm focus:outline-none ${
+              isFuture
+                ? 'border-amber-600 text-amber-300 focus:border-amber-500'
+                : 'border-slate-700 text-slate-200 focus:border-violet-600'
+            }`}
           >
             <option value="">Year</option>
-            {YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+            <optgroup label="Historical (1995–2024)">
+              {HISTORICAL_YEARS.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Projection (2025–2030)">
+              {FUTURE_YEARS.map((y) => (
+                <option key={y} value={y}>{y} *</option>
+              ))}
+            </optgroup>
           </select>
         </div>
 
@@ -69,11 +87,18 @@ export default function PredictionControls({
         </button>
       </div>
 
-      <p className="text-slate-600 text-xs leading-relaxed border-t border-slate-800 pt-3">
-        ⚠ Predictions are based on historical patterns learned from 1995–2024 satellite data,
-        not physical climate simulation. This is an educational demonstration of how different
-        computational systems behave on the same problem — not a weather forecast.
-      </p>
+      {isFuture ? (
+        <p className="text-amber-600 text-xs leading-relaxed border-t border-amber-900/40 pt-3">
+          * Projection mode: no satellite data exists for {selectedYear}.
+          Both models predict using the 30-year historical average for this state and month.
+          This is a baseline estimate, not a forecast.
+        </p>
+      ) : (
+        <p className="text-slate-600 text-xs leading-relaxed border-t border-slate-800 pt-3">
+          Predictions are based on historical patterns learned from 1995–2024 satellite data,
+          not physical climate simulation. Educational demonstration only — not a weather forecast.
+        </p>
+      )}
     </div>
   )
 }

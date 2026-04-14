@@ -127,8 +127,16 @@ def _engineer(row: pd.Series, month: int) -> np.ndarray:
     ], dtype=np.float64)
 
 
-def _get_feature_vector(state: str, month: int, year: int | None) -> tuple[np.ndarray, str]:
-    """Look up features for (state, month). Uses exact year row if provided, else averages all years."""
+FUTURE_YEAR_CUTOFF = 2024
+
+
+def _get_feature_vector(state: str, month: int, year: int | None) -> tuple[np.ndarray, str, bool]:
+    """Look up features for (state, month).
+
+    Returns (features, historical_label, is_projection).
+    - Exact year row used for 1995–2024.
+    - Historical average used when year is None or year > 2024 (projection).
+    """
     mask = (artifacts.df["state"] == state) & (artifacts.df["month"] == month)
     rows = artifacts.df[mask]
     if rows.empty:
@@ -136,7 +144,9 @@ def _get_feature_vector(state: str, month: int, year: int | None) -> tuple[np.nd
 
     historical_label = rows["label_name"].mode().iloc[0]
 
-    if year is not None:
+    is_projection = year is None or year > FUTURE_YEAR_CUTOFF
+
+    if not is_projection:
         year_rows = rows[rows["year"] == year]
         if year_rows.empty:
             raise HTTPException(404, f"No data for state='{state}', month={month}, year={year}")
@@ -145,7 +155,7 @@ def _get_feature_vector(state: str, month: int, year: int | None) -> tuple[np.nd
         avg = rows[RAW_COLS].mean()
 
     features = _engineer(avg, month)
-    return features, historical_label
+    return features, historical_label, is_projection
 
 
 def _classical_predict(features: np.ndarray) -> dict:
@@ -259,7 +269,7 @@ async def startup() -> None:
 class PredictRequest(BaseModel):
     state: str = Field(..., description="Indian state name, e.g. 'Gujarat'")
     month: int = Field(..., ge=1, le=12, description="Month 1–12")
-    year: int | None = Field(None, ge=1995, le=2024, description="Optional year 1995–2024")
+    year: int | None = Field(None, ge=1995, le=2030, description="Optional year 1995–2030 (2025+ uses historical average as projection)")
 
 
 @app.get("/health")
@@ -278,7 +288,7 @@ def predict(req: PredictRequest) -> dict:
     if state not in artifacts.states:
         raise HTTPException(404, f"Unknown state: '{state}'. Use GET /states for valid names.")
 
-    features, historical_label = _get_feature_vector(state, req.month, req.year)
+    features, historical_label, is_projection = _get_feature_vector(state, req.month, req.year)
     classical = _classical_predict(features)
     quantum   = _quantum_predict(features)
 
@@ -289,6 +299,8 @@ def predict(req: PredictRequest) -> dict:
     return {
         "state":            state,
         "month":            req.month,
+        "year":             req.year,
+        "is_projection":    is_projection,
         "historical_label": historical_label,
         "classical":        classical,
         "quantum":          quantum,
