@@ -43,18 +43,6 @@ Classical models achieve R² > 0.99 — predicting temperature within 0.7°C. Qu
 
 The simulator lets you select any Indian state, month, and year (1995–2035) and see classical vs quantum temperature predictions side by side, along with a 2025–2035 forecast divergence chart.
 
-```bash
-# Terminal 1 — Backend API
-uvicorn backend.predict_server:app --port 8000 --reload
-
-# Terminal 2 — Frontend
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173)
-
 **How future predictions work:** For years 2025–2035, both models use the 30-year historical average climate features for that state+month, with `year` set to the requested future year. The year feature captures the temperature trend learned from 1995–2024 data.
 
 **Quantum inference note:** Quantum predictions are precomputed offline for all 13,776 (state × month × year) combinations and served from a lookup table. Real-time quantum inference is not feasible — training QSVR on 400 samples requires ~22 hours of IBM quantum computer time, exceeding available quotas. This is standard practice in quantum ML research.
