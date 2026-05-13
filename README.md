@@ -1,120 +1,67 @@
 # Qlimate
 
-A comparative systems study of Classical ML and Quantum ML on 30 years of NASA MERRA-2 climate data across Indian states.
+A comparative study of Classical ML and Quantum ML for **temperature forecasting** on 30 years of NASA MERRA-2 climate data across Indian states — with an interactive simulator that predicts future temperatures up to 2035.
 
 > **This project compares computational regimes, not just performance.**
 > Same climate problem. Fundamentally different computation.
 
-![Summary](results/figures/summary.png)
-
 ---
 
-## What This Project Shows
+## What This Project Does
 
-Classical and quantum ML are not competing on equal terms — and that asymmetry is the point:
+Qlimate trains classical and quantum regression models to predict **surface temperature (°C)** for any Indian state, month, and year — including future projections up to 2035. The central question: *which computing paradigm predicts climate temperature more accurately, and how do their forecasts diverge?*
 
 | Dimension | Classical ML | Quantum ML |
 |---|---|---|
-| Training samples | 6,958 | 400 (simulation limit) |
-| Feature count | 9 | 4 (PCA compressed) |
-| Training time | seconds–minutes (not profiled) | 46 min (QSVC), 3 min (VQC) |
-| Computational complexity | O(n log n) to O(n²) | O(n²) quantum circuits |
-| Hardware | CPU/GPU workstation | IBM ibm_fez (127-qubit Eagle r3) |
-| Data compression required | None | 9→4 features, 6,958→400 samples |
-
-The quantum model is not losing — it is operating under fundamentally different constraints imposed by current NISQ hardware and circuit simulation cost.
-
----
-
-## Interactive Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) — 8 interactive sections:
-
-1. **Overview** — dataset stats, regime comparison
-2. **Comparison Dashboard** — side-by-side metrics table and bar chart
-3. **Scaling Simulator** — drag slider to see QSVC O(n²) vs classical O(n log n)
-4. **Feature Compression** — 9 raw features → 4 PCA dims → 4 qubits
-5. **Kernel Matrix Explorer** — simulator heatmap + IBM hardware partial run
-6. **Optimization Behavior** — NN loss curves + VQC convergence (honest: 0 iterations)
-7. **Pipeline Breakdown** — timing per stage per model
-8. **Key Insights** — NISQ constraints, quantum advantage hypothesis
+| Target | T2M temperature (°C) | T2M temperature (°C) |
+| Training samples | 8,400 (1995–2019) | 400 (simulation limit) |
+| Feature count | 17 | 4 (PCA compressed) |
+| Best RMSE | **0.73°C** (Gradient Boosting) | 6.56°C (QSVR) |
+| Best R² | **0.993** | 0.425 |
+| Training time | seconds–minutes | 15 min (QSVR), 5 min (VQR) |
+| Hardware | CPU/GPU workstation | Qiskit StatevectorSampler (CPU simulation) |
 
 ---
 
 ## Results
 
-![Model Comparison](results/figures/model_comparison.png)
+| Model | Type | MAE (°C) | RMSE (°C) | R² | Training samples |
+|---|---|---|---|---|---|
+| Gradient Boosting | Classical | 0.554 | **0.732** | **0.993** | 8,400 |
+| XGBoost | Classical | 0.546 | 0.735 | 0.993 | 8,400 |
+| Random Forest | Classical | 0.609 | 0.824 | 0.991 | 8,400 |
+| Neural Network | Classical | 0.740 | 0.993 | 0.987 | 8,400 |
+| Ridge Regression | Classical | 1.155 | 1.426 | 0.973 | 8,400 |
+| **QSVR** | **Quantum** | 4.030 | 6.558 | 0.425 | 400 |
+| **VQR** | **Quantum** | 21.883 | 23.239 | −6.22 | 400 |
 
-| Model | Type | Accuracy | F1 Macro | Precision | Recall | Training samples |
-|---|---|---|---|---|---|---|
-| XGBoost | Classical | 0.632 | 0.432 | 0.593 | 0.402 | 6,958 |
-| Neural Network | Classical | 0.586 | 0.268 | 0.461 | 0.309 | 6,958 |
-| Random Forest | Classical | 0.526 | 0.442 | 0.575 | 0.432 | 6,958 |
-| SVM | Classical | 0.415 | 0.405 | 0.479 | 0.399 | 6,958 |
-| VQC | Quantum | 0.320 | 0.140 | 0.160 | 0.237 | 400 |
-| QSVC | Quantum | 0.253 | 0.230 | 0.285 | 0.241 | 400 |
-
-![Confusion Matrices](results/figures/confusion_matrices.png)
-
----
-
-## Computational Differences
-
-### Scaling behavior
-
-![Scaling Comparison](results/figures/scaling_comparison.png)
-
-- **Classical RF/XGBoost**: near-linear in n — can train on full 6,958-sample dataset
-- **QSVC**: O(n²) quantum kernel circuits — 160,000 circuit evaluations at n=400 (46 min)
-- **QSVC at classical training size**: extrapolated ~82 hours (computationally infeasible)
-
-### Feature compression pipeline
-
-![Feature Compression](results/figures/feature_compression.png)
-
-9 raw variables → StandardScaler + PCA → 4 components (94.1% variance) → MinMaxScaler [0, π] → ZZFeatureMap angle encoding
-
-### Optimization behavior
-
-![Optimization Comparison](results/figures/optimization_comparison.png)
-
-- **Neural Network**: smooth convergence over 125 epochs (Adam, early stopping)
-- **VQC**: 0 optimizer iterations completed — COBYLA callback incompatibility in qiskit-machine-learning 0.9.0. Shown honestly, not hidden.
-
-### Kernel matrix
-
-![Kernel Matrix](results/figures/kernel_matrix.png)
-
-Simulator kernel values: mean=0.16, max=0.92. Hardware (ibm_fez) expected to compress this range to [0.3, 0.7] due to depolarizing noise.
-
-### Pipeline timing
-
-![Pipeline Breakdown](results/figures/pipeline_breakdown.png)
+Classical models achieve R² > 0.99 — predicting temperature within 0.7°C. Quantum models are constrained to 400 samples and 4 compressed features due to NISQ hardware limits, resulting in significantly higher error. This gap is the core finding.
 
 ---
 
-## IBM Quantum Hardware Run
+## Interactive Simulator
 
-```
-Backend:    ibm_fez — 127 qubits, Eagle r3
-Circuit:    ZZFeatureMap (4 qubits, reps=1, linear entanglement)
-            Transpiled to ISA native gate set (optimization_level=1)
-Rows run:   2 / 20 planned kernel rows
-Time/row:   ~8–10 min quantum compute
-Outcome:    Monthly quota (10 min/month) exhausted after 2 rows
+The simulator lets you select any Indian state, month, and year (1995–2035) and see classical vs quantum temperature predictions side by side, along with a 2025–2035 forecast divergence chart.
+
+```bash
+# Terminal 1 — Backend API
+uvicorn backend.predict_server:app --port 8000 --reload
+
+# Terminal 2 — Frontend
+cd frontend
+npm install
+npm run dev
 ```
 
-Circuits were transpiled, accepted, and executed on real superconducting qubits. Quantum noise flattens the kernel matrix, reducing discriminative power compared to statevector simulation.
+Open [http://localhost:5173](http://localhost:5173)
+
+**How future predictions work:** For years 2025–2035, both models use the 30-year historical average climate features for that state+month, with `year` set to the requested future year. The year feature captures the temperature trend learned from 1995–2024 data.
+
+**Quantum inference note:** Quantum predictions are precomputed offline for all 13,776 (state × month × year) combinations and served from a lookup table. Real-time quantum inference is not feasible — training QSVR on 400 samples requires ~22 hours of IBM quantum computer time, exceeding available quotas. This is standard practice in quantum ML research.
 
 ---
 
-## Dataset
+## Data Pipeline
 
 **Source:** NASA MERRA-2 Monthly Reanalysis (GES DISC / Earthdata)
 
@@ -123,18 +70,13 @@ Circuits were transpiled, accepted, and executed on real superconducting qubits.
 | Collections | M2TMNXSLV · M2TMNXFLX · M2TMNXRAD |
 | Variables | T2M, QV2M, U10M, V10M, PS, SLP, PRECTOT, EVAP, CLDTOT |
 | Coverage | 1995–2024 (355 months) · 28 Indian states |
-| Total rows | 9,940 (355 months × 28 states) |
-| Split | 70 / 15 / 15 (train / val / test, stratified) |
+| Total rows | 9,940 |
+| Split | Chronological — train 1995–2019, val 2020–2021, test 2022–2024 |
+| Target | T2M_celsius = T2M − 273.15 |
 
-**5-class labels** (per state, per calendar month — accounts for seasonality):
+**17 regression features:** PRECTOT, QV2M, PS, SLP, SWGDN, LWGNT, CLDTOT, EVAP, wind_speed, wind_direction, net_radiation, precip_evap_ratio, month_sin, month_cos, pressure_anomaly, **year**, **state_encoded**
 
-| Class | Condition |
-|---|---|
-| Heat Extreme | T2M > 90th percentile |
-| Cold Extreme | T2M < 10th percentile |
-| Drought | PRECTOT < 15th percentile |
-| Wet / Flood | PRECTOT > 85th percentile |
-| Normal | none of the above |
+The `year` feature is what enables temporal extrapolation to 2035 — models learn the temperature trend over 1995–2024 and project it forward.
 
 ---
 
@@ -149,11 +91,10 @@ pip install -r requirements.txt
 ### Credentials
 
 ```bash
-export EARTHDATA_PASSWORD="your_password"      # Required for data download
-export IBM_CLOUD_API_KEY="your_key"            # Optional: IBM Quantum hardware
+export EARTHDATA_PASSWORD="your_password"   # Required for data download
 ```
 
-Update `config/config.yaml` with your Earthdata username and IBM Cloud CRN.
+Update `config/config.yaml` with your Earthdata username.
 
 ---
 
@@ -163,17 +104,15 @@ Update `config/config.yaml` with your Earthdata username and IBM Cloud CRN.
 # Full pipeline (after data download)
 python run.py
 
-# Key stages
-python run.py --only classical        # Train RF, SVM, XGBoost, NN
-python run.py --only quantum          # Train QSVC, VQC (~1 hour)
-python run.py --only evaluate         # Compare all models
-python run.py --only visualize        # Standard figures + dashboard
-python run.py --only export_metrics   # Export JSON for frontend
-python run.py --only visualize_extended  # Extended analysis figures
+# Individual stages
+python run.py --only engineer     # Feature engineering + chronological splits
+python run.py --only classical    # Train 5 classical regressors (~9 min)
+python run.py --only quantum      # Train QSVR + VQR (~1 hour, CPU simulation)
+python run.py --only precompute   # Generate quantum_predictions.json (~1.5 hours, parallel)
+python run.py --only evaluate     # Compare all models, write model_comparison.csv
 
 # Resume from a stage
 python run.py --from evaluate
-python run.py --from export_metrics
 ```
 
 ### Download MERRA-2 data
@@ -182,15 +121,15 @@ python run.py --from export_metrics
 python src/data/download.py
 ```
 
-~3.5 GB, 1,080 NetCDF4 files. Resumes from where it left off.
+~3.5 GB, 1,080 NetCDF4 files.
 
-### Export metrics JSON
+### Precompute quantum predictions (parallel)
 
 ```bash
-python scripts/export_metrics.py
+python scripts/precompute_quantum.py
 ```
 
-Writes `results/metrics/*.json` and copies to `frontend/src/data/` if the frontend exists.
+Generates `results/quantum_predictions.json` — 13,776 predictions (28 states × 12 months × 41 years) using all available CPU cores in parallel.
 
 ---
 
@@ -201,51 +140,57 @@ Qlimate/
 ├── config/config.yaml              # All hyperparameters and paths
 ├── run.py                          # Pipeline orchestrator
 ├── scripts/
-│   └── export_metrics.py           # Export all metrics to JSON
+│   ├── precompute_quantum.py       # Parallel offline quantum prediction
+│   └── export_metrics.py           # Export metrics to JSON
 ├── src/
 │   ├── data/
 │   │   ├── download.py             # MERRA-2 Earthdata download
-│   │   ├── preprocess.py           # Grid-to-state aggregation
-│   │   └── label.py                # Climate condition labeling
+│   │   └── preprocess.py           # Grid-to-state aggregation
 │   ├── features/
-│   │   └── engineering.py          # Feature engineering, splits, PCA
+│   │   └── engineering.py          # Feature engineering, chronological splits, PCA
 │   ├── models/
-│   │   ├── classical.py            # RF, SVM, XGBoost, PyTorch NN
-│   │   └── quantum.py              # QSVC, VQC, IBM hardware runner
+│   │   ├── classical.py            # ClassicalRegressorTrainer (XGBoost, RF, Ridge, GB, NN)
+│   │   └── quantum.py              # QuantumRegressorTrainer (QSVR, VQR)
 │   ├── evaluation/
-│   │   └── metrics.py              # Unified evaluation metrics
+│   │   └── metrics.py              # MAE, RMSE, R² evaluation + comparison DataFrame
 │   └── visualization/
-│       ├── static_plots.py         # Original comparison figures
-│       ├── interactive.py          # Plotly dashboard
-│       ├── kernel_visualization.py # Kernel matrix heatmap
-│       ├── optimization_plots.py   # NN + VQC convergence plots
-│       ├── scaling_plots.py        # Classical vs quantum scaling
-│       ├── feature_flow.py         # Feature compression diagram
-│       └── pipeline_breakdown.py   # Per-stage timing chart
-├── frontend/                       # React interactive dashboard
-│   ├── src/
-│   │   ├── data/                   # JSON from results/metrics/
-│   │   ├── components/
-│   │   │   ├── charts/             # Plotly chart components
-│   │   │   ├── sections/           # Page sections
-│   │   │   └── layout/             # Navbar, wrappers
-│   │   └── App.jsx
-│   └── package.json
+│       └── ...                     # Static + interactive plots
+├── backend/
+│   └── predict_server.py           # FastAPI: classical live inference + quantum lookup
+├── frontend/                       # React/Vite simulator
+│   └── src/
+│       ├── pages/Simulator.jsx     # Main simulator page (homepage)
+│       ├── components/
+│       │   ├── TemperatureOutputPanel.jsx
+│       │   ├── ForecastDivergenceChart.jsx
+│       │   ├── DifferencePanel.jsx
+│       │   ├── PredictionControls.jsx
+│       │   └── IndiaMap.jsx
+│       └── api/predict.js          # API client + mock fallback
 ├── results/
-│   ├── figures/                    # All PNG figures
-│   ├── models/                     # Saved model artifacts
+│   ├── figures/                    # PNG figures
+│   ├── models/                     # Saved model artifacts + quantum_predictions.json
 │   ├── metrics/                    # JSON metric exports
-│   ├── model_comparison.csv
-│   └── dashboard.html
+│   └── model_comparison.csv        # Full comparison table (MAE, RMSE, R²)
 └── data/
     ├── raw/                        # MERRA-2 NetCDF4 (gitignored)
-    └── processed/                  # State CSVs (gitignored)
+    └── processed/                  # State CSVs + regression splits (gitignored)
 ```
+
+---
+
+## Tests
+
+```bash
+pytest tests/
+```
+
+Covers feature engineering, regression metrics, classical model interfaces, quantum model interfaces, and data pipeline integration. All tests use synthetic data — no dependency on real data files or config.
 
 ---
 
 ## Acknowledgements
 
 - **Dataset:** [NASA MERRA-2](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/) via GES DISC / Earthdata
-- **Quantum framework:** [Qiskit](https://www.ibm.com/quantum/qiskit) by IBM
+- **Quantum framework:** [Qiskit](https://www.ibm.com/quantum/qiskit) + [qiskit-machine-learning](https://github.com/qiskit-community/qiskit-machine-learning) by IBM
 - **India boundaries:** [Subhash9325/GeoJson-Data-of-Indian-States](https://github.com/Subhash9325/GeoJson-Data-of-Indian-States)

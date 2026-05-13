@@ -67,7 +67,7 @@ def export_performance(splits, quantum, config) -> dict:
     """Re-run inference on test set; collect classification metrics."""
     import torch
     from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-    from src.models.classical import ClimateNN
+    from src.models.classical import ClimateRegressionNN
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_test, y_test = splits["X_test"], splits["y_test"]

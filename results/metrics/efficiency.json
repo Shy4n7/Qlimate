@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-04-11T10:55:26.170791+00:00",
+  "generated_at": "2026-05-12T18:12:22.220055+00:00",
   "models": {
     "random_forest": {
       "training_time_s": null,
       "training_time_note": "not captured during original run",
       "time_per_sample_ms": null,
-      "memory_usage_mb": 13.703,
+      "memory_usage_mb": 34.289,
       "n_train": 6958,
       "complexity_class": "O(n * trees * log(n))",
       "circuit_executions": null,

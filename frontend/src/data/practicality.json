@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-11T10:55:30.905264+00:00",
+  "generated_at": "2026-05-12T18:12:28.035514+00:00",
   "hardware_requirements": {
     "classical": {
       "cpu": "any multi-core CPU (n_jobs=-1 parallelism)",

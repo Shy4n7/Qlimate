@@ -2,7 +2,7 @@ import React from 'react'
 import { MONTHS } from '../api/predict'
 
 const HISTORICAL_YEARS = Array.from({ length: 2024 - 1995 + 1 }, (_, i) => 1995 + i)
-const FUTURE_YEARS     = Array.from({ length: 2030 - 2025 + 1 }, (_, i) => 2025 + i)
+const FUTURE_YEARS     = Array.from({ length: 2035 - 2025 + 1 }, (_, i) => 2025 + i)
 
 export default function PredictionControls({
   selectedState,
@@ -61,12 +61,12 @@ export default function PredictionControls({
             }`}
           >
             <option value="">Year</option>
-            <optgroup label="Historical (1995–2024)">
+            <optgroup label="Historical (1995-2024)">
               {HISTORICAL_YEARS.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </optgroup>
-            <optgroup label="Projection (2025–2030)">
+            <optgroup label="Projection (2025-2035)">
               {FUTURE_YEARS.map((y) => (
                 <option key={y} value={y}>{y} *</option>
               ))}
@@ -83,7 +83,7 @@ export default function PredictionControls({
               : 'bg-slate-700 text-slate-500 cursor-not-allowed'
           }`}
         >
-          {isLoading ? 'Predicting…' : 'Predict →'}
+          {isLoading ? 'Predicting...' : 'Predict ->'}
         </button>
       </div>
 
@@ -91,12 +91,12 @@ export default function PredictionControls({
         <p className="text-amber-600 text-xs leading-relaxed border-t border-amber-900/40 pt-3">
           * Projection mode: no satellite data exists for {selectedYear}.
           Both models predict using the 30-year historical average for this state and month.
-          This is a baseline estimate, not a forecast.
+          This is a temperature forecast through 2035, not a real-time weather prediction.
         </p>
       ) : (
         <p className="text-slate-600 text-xs leading-relaxed border-t border-slate-800 pt-3">
-          Predictions are based on historical patterns learned from 1995–2024 satellite data,
-          not physical climate simulation. Educational demonstration only — not a weather forecast.
+          Predictions are based on historical patterns learned from 1995-2024 satellite data,
+          not physical climate simulation. Educational demonstration only - not a weather forecast.
         </p>
       )}
     </div>

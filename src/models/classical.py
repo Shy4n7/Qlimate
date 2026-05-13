@@ -1,14 +1,15 @@
 """
-Classical ML models for climate condition classification.
+Classical ML models for climate temperature regression.
 
 Models:
-  - Random Forest (sklearn)
-  - SVM with RBF kernel (sklearn)
-  - XGBoost
-  - Neural Network (PyTorch, GPU-accelerated)
+  - XGBoost Regressor
+  - Random Forest Regressor
+  - Ridge Regression
+  - Gradient Boosting Regressor
+  - Neural Network Regressor (PyTorch, single output neuron, MSELoss)
 
 All models expose a common interface: train_<model>() returns a result dict
-with model, metrics, training_time, val_metrics.
+with model, training_time, val_preds, and best_params (where applicable).
 """
 
 import logging
@@ -21,10 +22,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import GridSearchCV
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
+from xgboost import XGBRegressor
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -36,13 +37,17 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
 
 
 # ---------------------------------------------------------------------------
-# PyTorch Neural Network
+# PyTorch Neural Network — Regression
 # ---------------------------------------------------------------------------
 
-class ClimateNN(nn.Module):
-    """Feedforward MLP for 5-class climate condition classification."""
+class ClimateRegressionNN(nn.Module):
+    """Feedforward MLP for temperature regression.
 
-    def __init__(self, input_dim: int, hidden_dims: list[int], n_classes: int,
+    Output shape: (n, 1) for any input batch of shape (n, input_dim).
+    Uses MSELoss; no softmax or classification head.
+    """
+
+    def __init__(self, input_dim: int, hidden_dims: list[int],
                  dropout: list[float]):
         super().__init__()
         layers = []
@@ -55,19 +60,21 @@ class ClimateNN(nn.Module):
                 nn.Dropout(drop),
             ]
             in_dim = out_dim
-        layers.append(nn.Linear(in_dim, n_classes))
+        # Single output neuron for regression
+        layers.append(nn.Linear(in_dim, 1))
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Return tensor of shape (n, 1)."""
         return self.net(x)
 
 
 # ---------------------------------------------------------------------------
-# Classical Model Trainer
+# Classical Regressor Trainer
 # ---------------------------------------------------------------------------
 
-class ClassicalModelTrainer:
-    """Unified training interface for all classical models."""
+class ClassicalRegressorTrainer:
+    """Unified training interface for all classical regression models."""
 
     def __init__(self, config: Optional[dict] = None,
                  config_path: str = "config/config.yaml"):
@@ -78,108 +85,38 @@ class ClassicalModelTrainer:
         )
         logger.info(f"Using device: {self.device}")
 
-    def train_random_forest(
+    def train_xgboost_regressor(
         self,
         X_train: np.ndarray, y_train: np.ndarray,
         X_val: np.ndarray, y_val: np.ndarray,
     ) -> dict:
-        cfg = self.config["classical_ml"]["random_forest"]
-        param_grid = {
-            "n_estimators": cfg["n_estimators"],
-            "max_depth": cfg["max_depth"],
-            "min_samples_split": cfg["min_samples_split"],
-        }
-        logger.info("Training Random Forest with GridSearchCV...")
-        t0 = time.perf_counter()
-
-        base = RandomForestClassifier(
-            random_state=self.config["data_split"]["random_state"],
-            n_jobs=-1,
-            class_weight="balanced",
-        )
-        gs = GridSearchCV(base, param_grid, cv=cfg["cv_folds"],
-                          scoring="f1_macro", n_jobs=-1, verbose=0)
-        gs.fit(X_train, y_train)
-
-        training_time = time.perf_counter() - t0
-        model = gs.best_estimator_
-
-        val_preds = model.predict(X_val)
-        result = {
-            "model": model,
-            "best_params": gs.best_params_,
-            "training_time": training_time,
-            "val_preds": val_preds,
-            "feature_importances": model.feature_importances_,
-        }
-        logger.info(f"RF done in {training_time:.1f}s. Best params: {gs.best_params_}")
-        self.results["random_forest"] = result
-        return result
-
-    def train_svm(
-        self,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_val: np.ndarray, y_val: np.ndarray,
-    ) -> dict:
-        cfg = self.config["classical_ml"]["svm"]
-        param_grid = {
-            "C": cfg["C"],
-            "gamma": cfg["gamma"],
-        }
-        logger.info("Training SVM with GridSearchCV...")
-        t0 = time.perf_counter()
-
-        base = SVC(kernel="rbf", class_weight="balanced",
-                   random_state=self.config["data_split"]["random_state"],
-                   probability=True)
-        gs = GridSearchCV(base, param_grid, cv=cfg["cv_folds"],
-                          scoring="f1_macro", n_jobs=-1, verbose=0)
-        gs.fit(X_train, y_train)
-
-        training_time = time.perf_counter() - t0
-        model = gs.best_estimator_
-
-        val_preds = model.predict(X_val)
-        result = {
-            "model": model,
-            "best_params": gs.best_params_,
-            "training_time": training_time,
-            "val_preds": val_preds,
-        }
-        logger.info(f"SVM done in {training_time:.1f}s. Best params: {gs.best_params_}")
-        self.results["svm"] = result
-        return result
-
-    def train_xgboost(
-        self,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_val: np.ndarray, y_val: np.ndarray,
-    ) -> dict:
+        """Train XGBoost Regressor with GridSearchCV (neg_mean_squared_error)."""
         cfg = self.config["classical_ml"]["xgboost"]
         param_grid = {
             "n_estimators": cfg["n_estimators"],
             "max_depth": cfg["max_depth"],
             "learning_rate": cfg["learning_rate"],
         }
-        logger.info("Training XGBoost with GridSearchCV...")
+        logger.info("Training XGBoost Regressor with GridSearchCV...")
         t0 = time.perf_counter()
 
         tree_method = "hist"
         device_str = "cuda" if torch.cuda.is_available() else "cpu"
 
-        base = XGBClassifier(
+        base = XGBRegressor(
             tree_method=tree_method,
             device=device_str,
-            use_label_encoder=False,
-            eval_metric="mlogloss",
             random_state=self.config["data_split"]["random_state"],
             verbosity=0,
         )
-        gs = GridSearchCV(base, param_grid, cv=cfg["cv_folds"],
-                          scoring="f1_macro", n_jobs=1, verbose=0)
-        gs.fit(X_train, y_train,
-               eval_set=[(X_val, y_val)],
-               verbose=False)
+        gs = GridSearchCV(
+            base, param_grid,
+            cv=cfg["cv_folds"],
+            scoring="neg_mean_squared_error",
+            n_jobs=1,
+            verbose=0,
+        )
+        gs.fit(X_train, y_train)
 
         training_time = time.perf_counter() - t0
         model = gs.best_estimator_
@@ -190,41 +127,175 @@ class ClassicalModelTrainer:
             "best_params": gs.best_params_,
             "training_time": training_time,
             "val_preds": val_preds,
-            "feature_importances": model.feature_importances_,
         }
-        logger.info(f"XGBoost done in {training_time:.1f}s. Best params: {gs.best_params_}")
-        self.results["xgboost"] = result
+        logger.info(
+            f"XGBoost Regressor done in {training_time:.1f}s. "
+            f"Best params: {gs.best_params_}"
+        )
+        self.results["xgboost_regressor"] = result
         return result
 
-    def train_neural_network(
+    def train_random_forest_regressor(
         self,
         X_train: np.ndarray, y_train: np.ndarray,
         X_val: np.ndarray, y_val: np.ndarray,
     ) -> dict:
-        cfg = self.config["classical_ml"]["neural_net"]
-        n_classes = len(np.unique(y_train))
-        input_dim = X_train.shape[1]
-
-        logger.info(f"Training Neural Network on {self.device}...")
+        """Train Random Forest Regressor with GridSearchCV (neg_mean_squared_error)."""
+        cfg = self.config["classical_ml"]["random_forest"]
+        param_grid = {
+            "n_estimators": cfg["n_estimators"],
+            "max_depth": cfg["max_depth"],
+            "min_samples_split": cfg["min_samples_split"],
+        }
+        logger.info("Training Random Forest Regressor with GridSearchCV...")
         t0 = time.perf_counter()
 
-        model = ClimateNN(
+        base = RandomForestRegressor(
+            random_state=self.config["data_split"]["random_state"],
+            n_jobs=-1,
+        )
+        gs = GridSearchCV(
+            base, param_grid,
+            cv=cfg["cv_folds"],
+            scoring="neg_mean_squared_error",
+            n_jobs=-1,
+            verbose=0,
+        )
+        gs.fit(X_train, y_train)
+
+        training_time = time.perf_counter() - t0
+        model = gs.best_estimator_
+
+        val_preds = model.predict(X_val)
+        result = {
+            "model": model,
+            "best_params": gs.best_params_,
+            "training_time": training_time,
+            "val_preds": val_preds,
+        }
+        logger.info(
+            f"Random Forest Regressor done in {training_time:.1f}s. "
+            f"Best params: {gs.best_params_}"
+        )
+        self.results["random_forest_regressor"] = result
+        return result
+
+    def train_ridge_regression(
+        self,
+        X_train: np.ndarray, y_train: np.ndarray,
+        X_val: np.ndarray, y_val: np.ndarray,
+    ) -> dict:
+        """Train Ridge Regression with GridSearchCV over alpha values."""
+        # Read alpha list from config; fall back to default if key absent
+        ridge_cfg = self.config["classical_ml"].get("ridge", {})
+        alpha_list = ridge_cfg.get("alpha", [0.01, 0.1, 1.0, 10.0, 100.0])
+        cv_folds = ridge_cfg.get("cv_folds", 3)
+
+        param_grid = {"alpha": alpha_list}
+        logger.info("Training Ridge Regression with GridSearchCV...")
+        t0 = time.perf_counter()
+
+        base = Ridge(
+            random_state=self.config["data_split"]["random_state"],
+        )
+        gs = GridSearchCV(
+            base, param_grid,
+            cv=cv_folds,
+            scoring="neg_mean_squared_error",
+            n_jobs=-1,
+            verbose=0,
+        )
+        gs.fit(X_train, y_train)
+
+        training_time = time.perf_counter() - t0
+        model = gs.best_estimator_
+
+        val_preds = model.predict(X_val)
+        result = {
+            "model": model,
+            "best_params": gs.best_params_,
+            "training_time": training_time,
+            "val_preds": val_preds,
+        }
+        logger.info(
+            f"Ridge Regression done in {training_time:.1f}s. "
+            f"Best params: {gs.best_params_}"
+        )
+        self.results["ridge_regression"] = result
+        return result
+
+    def train_gradient_boosting_regressor(
+        self,
+        X_train: np.ndarray, y_train: np.ndarray,
+        X_val: np.ndarray, y_val: np.ndarray,
+    ) -> dict:
+        """Train Gradient Boosting Regressor with GridSearchCV (neg_mean_squared_error)."""
+        cfg = self.config["classical_ml"]["gradient_boosting"]
+        param_grid = {
+            "n_estimators": cfg["n_estimators"],
+            "max_depth": cfg["max_depth"],
+            "learning_rate": cfg["learning_rate"],
+        }
+        logger.info("Training Gradient Boosting Regressor with GridSearchCV...")
+        t0 = time.perf_counter()
+
+        base = GradientBoostingRegressor(
+            random_state=self.config["data_split"]["random_state"],
+        )
+        gs = GridSearchCV(
+            base, param_grid,
+            cv=cfg["cv_folds"],
+            scoring="neg_mean_squared_error",
+            n_jobs=-1,
+            verbose=0,
+        )
+        gs.fit(X_train, y_train)
+
+        training_time = time.perf_counter() - t0
+        model = gs.best_estimator_
+
+        val_preds = model.predict(X_val)
+        result = {
+            "model": model,
+            "best_params": gs.best_params_,
+            "training_time": training_time,
+            "val_preds": val_preds,
+        }
+        logger.info(
+            f"Gradient Boosting Regressor done in {training_time:.1f}s. "
+            f"Best params: {gs.best_params_}"
+        )
+        self.results["gradient_boosting_regressor"] = result
+        return result
+
+    def train_neural_network_regressor(
+        self,
+        X_train: np.ndarray, y_train: np.ndarray,
+        X_val: np.ndarray, y_val: np.ndarray,
+    ) -> dict:
+        """Train ClimateRegressionNN (PyTorch MLP, MSELoss, single output neuron)."""
+        cfg = self.config["classical_ml"]["neural_net"]
+        input_dim = X_train.shape[1]
+
+        logger.info(f"Training Neural Network Regressor on {self.device}...")
+        t0 = time.perf_counter()
+
+        model = ClimateRegressionNN(
             input_dim=input_dim,
             hidden_dims=cfg["hidden_dims"],
-            n_classes=n_classes,
             dropout=cfg["dropout"],
         ).to(self.device)
 
         optimizer = optim.Adam(model.parameters(), lr=cfg["learning_rate"])
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, patience=5, factor=0.5, verbose=False
+            optimizer, patience=5, factor=0.5
         )
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
 
         X_tr = torch.tensor(X_train, dtype=torch.float32).to(self.device)
-        y_tr = torch.tensor(y_train, dtype=torch.long).to(self.device)
+        y_tr = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1).to(self.device)
         X_vl = torch.tensor(X_val, dtype=torch.float32).to(self.device)
-        y_vl = torch.tensor(y_val, dtype=torch.long).to(self.device)
+        y_vl = torch.tensor(y_val, dtype=torch.float32).unsqueeze(1).to(self.device)
 
         batch_size = cfg["batch_size"]
         n_epochs = cfg["epochs"]
@@ -269,7 +340,7 @@ class ClassicalModelTrainer:
                 no_improve += 1
 
             if no_improve >= patience:
-                logger.info(f"Early stopping at epoch {epoch+1}")
+                logger.info(f"Early stopping at epoch {epoch + 1}")
                 break
 
         # Restore best weights
@@ -277,7 +348,8 @@ class ClassicalModelTrainer:
         model.eval()
 
         with torch.no_grad():
-            val_preds = model(X_vl).argmax(dim=1).cpu().numpy()
+            # squeeze (n, 1) -> (n,) for val_preds consistency
+            val_preds = model(X_vl).squeeze(1).cpu().numpy()
 
         training_time = time.perf_counter() - t0
         result = {
@@ -288,8 +360,11 @@ class ClassicalModelTrainer:
             "val_preds": val_preds,
             "best_val_loss": best_val_loss,
         }
-        logger.info(f"NN done in {training_time:.1f}s. Best val loss: {best_val_loss:.4f}")
-        self.results["neural_network"] = result
+        logger.info(
+            f"Neural Network Regressor done in {training_time:.1f}s. "
+            f"Best val MSE loss: {best_val_loss:.4f}"
+        )
+        self.results["neural_network_regressor"] = result
         return result
 
     def train_all(
@@ -297,99 +372,57 @@ class ClassicalModelTrainer:
         X_train: np.ndarray, y_train: np.ndarray,
         X_val: np.ndarray, y_val: np.ndarray,
     ) -> dict:
-        """Train all classical models and return combined results."""
-        self.train_random_forest(X_train, y_train, X_val, y_val)
-        self.train_svm(X_train, y_train, X_val, y_val)
-        self.train_xgboost(X_train, y_train, X_val, y_val)
-        self.train_neural_network(X_train, y_train, X_val, y_val)
+        """Train all five regression models and return combined results dict."""
+        self.train_xgboost_regressor(X_train, y_train, X_val, y_val)
+        self.train_random_forest_regressor(X_train, y_train, X_val, y_val)
+        self.train_ridge_regression(X_train, y_train, X_val, y_val)
+        self.train_gradient_boosting_regressor(X_train, y_train, X_val, y_val)
+        self.train_neural_network_regressor(X_train, y_train, X_val, y_val)
         return self.results
 
     def save_models(self, models_dir: Path) -> None:
-        """Save all trained models to disk."""
+        """Save all trained models to disk.
+
+        sklearn models → <name>.pkl
+        Neural network → neural_network_regressor_state_dict.pt
+                       + neural_network_regressor_meta.pkl
+        """
+        models_dir = Path(models_dir)
         models_dir.mkdir(parents=True, exist_ok=True)
 
         for name, result in self.results.items():
             model = result["model"]
-            if name == "neural_network":
-                torch.save(model.state_dict(),
-                           models_dir / f"{name}_state_dict.pt")
-                # Also save architecture info
-                joblib.dump({
-                    "input_dim": next(model.parameters()).shape[1]
-                    if hasattr(next(model.parameters()), 'shape') else None,
-                    "train_losses": result["train_losses"],
-                    "val_losses": result["val_losses"],
-                }, models_dir / f"{name}_meta.pkl")
+            if name == "neural_network_regressor":
+                torch.save(
+                    model.state_dict(),
+                    models_dir / "neural_network_regressor_state_dict.pt",
+                )
+                joblib.dump(
+                    {
+                        "hidden_dims": self.config["classical_ml"]["neural_net"]["hidden_dims"],
+                        "dropout": self.config["classical_ml"]["neural_net"]["dropout"],
+                        "train_losses": result["train_losses"],
+                        "val_losses": result["val_losses"],
+                        "best_val_loss": result["best_val_loss"],
+                    },
+                    models_dir / "neural_network_regressor_meta.pkl",
+                )
             else:
                 joblib.dump(model, models_dir / f"{name}.pkl")
 
         logger.info(f"Saved {len(self.results)} models to {models_dir}")
 
     def predict(self, model_name: str, X: np.ndarray) -> np.ndarray:
-        """Run inference for a named model."""
+        """Run inference for a named model; returns float array for regression."""
         result = self.results[model_name]
         model = result["model"]
-        if model_name == "neural_network":
+        if model_name == "neural_network_regressor":
             model.eval()
             X_t = torch.tensor(X, dtype=torch.float32).to(self.device)
             with torch.no_grad():
-                return model(X_t).argmax(dim=1).cpu().numpy()
+                # squeeze (n, 1) -> (n,)
+                return model(X_t).squeeze(1).cpu().numpy()
         return model.predict(X)
-
-    def scalability_analysis(
-        self,
-        X_train: np.ndarray, y_train: np.ndarray,
-        X_test: np.ndarray, y_test: np.ndarray,
-        sizes: Optional[list[int]] = None,
-    ) -> "pd.DataFrame":
-        """Train RF and XGBoost on increasing dataset sizes to show scalability."""
-        import pandas as pd
-        from sklearn.metrics import f1_score, accuracy_score
-
-        if sizes is None:
-            sizes = [100, 500, 1000, 2000, 5000, min(9000, len(X_train))]
-
-        seed = self.config["data_split"]["random_state"]
-        records = []
-
-        for size in sizes:
-            if size > len(X_train):
-                continue
-            rng = np.random.default_rng(seed)
-            idx = rng.choice(len(X_train), size=size, replace=False)
-            X_sub, y_sub = X_train[idx], y_train[idx]
-
-            for model_name, ModelClass, kwargs in [
-                ("Random Forest",
-                 RandomForestClassifier,
-                 {"n_estimators": 100, "n_jobs": -1, "random_state": seed,
-                  "class_weight": "balanced"}),
-                ("XGBoost",
-                 XGBClassifier,
-                 {"n_estimators": 100, "tree_method": "hist",
-                  "device": "cuda" if torch.cuda.is_available() else "cpu",
-                  "verbosity": 0, "eval_metric": "mlogloss",
-                  "random_state": seed}),
-            ]:
-                t0 = time.perf_counter()
-                m = ModelClass(**kwargs)
-                m.fit(X_sub, y_sub)
-                train_time = time.perf_counter() - t0
-
-                preds = m.predict(X_test)
-                records.append({
-                    "model": model_name,
-                    "train_size": size,
-                    "accuracy": accuracy_score(y_test, preds),
-                    "f1_macro": f1_score(y_test, preds, average="macro",
-                                         zero_division=0),
-                    "training_time": train_time,
-                })
-                logger.info(f"Scalability [{model_name}, n={size}]: "
-                            f"f1={records[-1]['f1_macro']:.3f}, "
-                            f"t={train_time:.1f}s")
-
-        return pd.DataFrame(records)
 
 
 if __name__ == "__main__":
@@ -401,7 +434,7 @@ if __name__ == "__main__":
     from src.features.engineering import load_splits
     splits, _ = load_splits(cfg)
 
-    trainer = ClassicalModelTrainer(cfg)
+    trainer = ClassicalRegressorTrainer(cfg)
     results = trainer.train_all(
         splits["X_train"], splits["y_train"],
         splits["X_val"], splits["y_val"],
