@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Data (large raw files — not needed in container)
+data/raw/
+data/.cache/
+data/shapefiles/
+
+# Dev artifacts
+.git/
+.kiro/
+.claude/
+.vscode/
+notebooks/
+
+# Frontend dev
+frontend/node_modules/
+frontend/dist/
+
+# Processed data splits (regenerated at runtime if needed)
+data/processed/regression_splits.npz
+data/processed/quantum_regression_splits.npz
+data/processed/splits.npz
+data/processed/quantum_splits.npz
+
+# Old classification models (not needed)
+results/models/svm.pkl
+results/models/random_forest.pkl
+results/models/xgboost.pkl
+results/models/logistic_regression.pkl
+results/models/knn.pkl
+results/models/adaboost.pkl
+results/models/decision_tree.pkl
+results/models/neural_network_state_dict.pt
+results/models/neural_network_meta.pkl

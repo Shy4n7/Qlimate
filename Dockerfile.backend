@@ -1,0 +1,28 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Copy application code
+COPY backend/ /app/backend/
+COPY src/ /app/src/
+COPY config/ /app/config/
+
+# Copy model artifacts and data (must exist before building)
+COPY results/models/ /app/results/models/
+COPY results/quantum_predictions.json /app/results/quantum_predictions.json
+COPY data/processed/merra2_india_states.csv /app/data/processed/merra2_india_states.csv
+
+EXPOSE 8000
+
+CMD ["uvicorn", "backend.predict_server:app", "--host", "0.0.0.0", "--port", "8000"]
