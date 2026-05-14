@@ -1,0 +1,25 @@
+services:
+  # Backend — FastAPI
+  - type: web
+    name: qlimate-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile.backend
+    plan: free
+    envVars:
+      - key: MODEL_STORAGE_URL
+        sync: false   # set this manually in Render dashboard after uploading models
+
+  # Frontend — static site built from React
+  - type: web
+    name: qlimate-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    plan: free
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://qlimate-backend.onrender.com/$1
+      - type: rewrite
+        source: /*
+        destination: /index.html

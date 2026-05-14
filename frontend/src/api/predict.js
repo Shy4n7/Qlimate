@@ -1,3 +1,7 @@
+// In dev: Vite proxies /api → localhost:8000
+// In production (Render): VITE_API_URL points to the backend service
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 const MOCK_STATES = [
@@ -93,7 +97,7 @@ function _mockForecastTemps(state, month, baseClassical) {
 
 export async function predict(state, month, year) {
   try {
-    const res = await fetch('/api/predict', {
+    const res = await fetch(`${API_BASE}/api/predict`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ state, month, year }),
@@ -107,7 +111,7 @@ export async function predict(state, month, year) {
 
 export async function fetchStates() {
   try {
-    const res = await fetch('/api/states')
+    const res = await fetch(`${API_BASE}/api/states`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     return data.states
@@ -119,7 +123,7 @@ export async function fetchStates() {
 export async function fetchForecast(state, month) {
   try {
     const params = new URLSearchParams({ state, month: String(month) })
-    const res = await fetch(`/api/forecast?${params}`)
+    const res = await fetch(`${API_BASE}/api/forecast?${params}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return await res.json()
   } catch {

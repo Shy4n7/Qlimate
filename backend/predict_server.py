@@ -347,6 +347,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:4173",
+        "http://localhost:80",
+        "http://localhost",
+        # Render frontend — update this after deploying frontend
+        "https://qlimate-frontend.onrender.com",
+        # Allow any onrender.com subdomain for flexibility
+        "https://*.onrender.com",
     ],
     allow_methods=["*"],
     allow_headers=["*"],

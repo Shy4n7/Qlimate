@@ -17,12 +17,14 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/ /app/backend/
 COPY src/ /app/src/
 COPY config/ /app/config/
+COPY scripts/download_models.py /app/scripts/download_models.py
 
-# Copy model artifacts and data (must exist before building)
+# Copy model artifacts if they exist locally (skipped on Render — downloaded at startup)
 COPY results/models/ /app/results/models/
 COPY results/quantum_predictions.json /app/results/quantum_predictions.json
 COPY data/processed/merra2_india_states.csv /app/data/processed/merra2_india_states.csv
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.predict_server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Download models from cloud storage if MODEL_STORAGE_URL is set, then start server
+CMD python scripts/download_models.py && uvicorn backend.predict_server:app --host 0.0.0.0 --port 8000
